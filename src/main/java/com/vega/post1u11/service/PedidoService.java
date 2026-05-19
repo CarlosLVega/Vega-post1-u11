@@ -1,70 +1,65 @@
 package com.vega.post1u11.service;
 
+import com.vega.post1u11.model.CodigoDescuento;
+import com.vega.post1u11.model.DatosCliente;
+import com.vega.post1u11.model.LineaPedido;
 import com.vega.post1u11.model.Pedido;
 import com.vega.post1u11.model.Producto;
 import com.vega.post1u11.repository.PedidoRepository;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class PedidoService {
 
-    @Autowired
-    private PedidoRepository repo;
+    private final PedidoRepository repo;
+    private final NotificacionService notificacion;
 
-    public String procesarPedido(Long clienteId, String clienteNombre,
-            String clienteEmail, String clienteTelefono,
-            String clienteDireccion, String clienteCiudad,
-            String clienteCodigoPostal, List<Long> productosIds,
-            List<Integer> cantidades, String metodoPago,
-            boolean esUrgente, String codigoDescuento) {
+    public PedidoService(PedidoRepository repo, NotificacionService notificacion) {
+        this.repo = repo;
+        this.notificacion = notificacion;
+    }
 
-        if (clienteId == null || clienteNombre == null
-                || clienteNombre.isBlank() || clienteEmail == null
-                || !clienteEmail.contains("@")) {
-            return "ERROR_CLIENTE";
-        }
-
-        if (clienteTelefono == null || clienteTelefono.isBlank()
-                || clienteDireccion == null || clienteDireccion.isBlank()
-                || clienteCiudad == null || clienteCiudad.isBlank()
-                || clienteCodigoPostal == null || clienteCodigoPostal.isBlank()) {
-            return "ERROR_CLIENTE";
-        }
-
-        if (productosIds == null || cantidades == null
-                || productosIds.isEmpty() || productosIds.size() != cantidades.size()) {
-            return "ERROR_PRODUCTO";
-        }
-
-        double total = 0;
-        for (int i = 0; i < productosIds.size(); i++) {
-            Producto producto = repo.findProductoById(productosIds.get(i));
-            if (producto == null || cantidades.get(i) == null || cantidades.get(i) <= 0) {
-                return "ERROR_PRODUCTO";
-            }
-            total += producto.getPrecio() * cantidades.get(i);
-        }
-
-        if (codigoDescuento != null && codigoDescuento.equals("VIP10")) {
-            total = total * 0.90;
-        } else if (codigoDescuento != null && codigoDescuento.equals("NEW20")) {
-            total = total * 0.80;
-        }
-
-        if (metodoPago == null || metodoPago.isBlank()) {
+    public String procesarPedido(Long clienteId, DatosCliente cliente, List<LineaPedido> lineas,
+            String metodoPago, boolean esUrgente, CodigoDescuento descuento) {
+        if (metodoPagoInvalido(metodoPago)) {
             return "ERROR_PAGO";
         }
+        double total = aplicarDescuento(calcularTotal(lineas), descuento);
+        notificacion.notificarPedido(cliente, esUrgente, metodoPago);
+        return persistirPedido(clienteId, cliente, total);
+    }
 
-        System.out.println("Enviando email a: " + clienteEmail);
-        System.out.println("Telefono del cliente: " + clienteTelefono);
-        System.out.println("Direccion: " + clienteDireccion + ", " + clienteCiudad
-                + " - " + clienteCodigoPostal);
-        System.out.println("Metodo de pago: " + metodoPago);
-        System.out.println("Pedido urgente: " + esUrgente);
+    private boolean metodoPagoInvalido(String metodoPago) {
+        return metodoPago == null || metodoPago.isBlank();
+    }
 
-        Pedido pedido = new Pedido(clienteId, clienteNombre, total);
+    private double calcularTotal(List<LineaPedido> lineas) {
+        if (lineas == null || lineas.isEmpty()) {
+            throw new IllegalArgumentException("El pedido requiere productos");
+        }
+        return lineas.stream()
+                .mapToDouble(this::calcularSubtotal)
+                .sum();
+    }
+
+    private double calcularSubtotal(LineaPedido linea) {
+        Producto producto = repo.findProductoById(linea.getProductoId());
+        if (producto == null) {
+            throw new IllegalArgumentException("Producto no encontrado");
+        }
+        return producto.getPrecio() * linea.getCantidad();
+    }
+
+    private double aplicarDescuento(double total, CodigoDescuento descuento) {
+        return descuento == null ? total : total * (1 - descuento.getPorcentaje());
+    }
+
+    private String persistirPedido(Long clienteId, DatosCliente cliente, double total) {
+        if (clienteId == null) {
+            return "ERROR_CLIENTE";
+        }
+        Pedido pedido = new Pedido(clienteId, cliente.getNombre(), total);
         return "OK_" + repo.save(pedido).getId();
     }
 }
