@@ -2,7 +2,17 @@
 
 ## Unidad 11 - Post Contenido 1
 
-Proyecto Spring Boot en Java 17 para el laboratorio de refactorizacion avanzada y Clean Code profundo.
+Proyecto Spring Boot en **Java 17** para el laboratorio de refactorizacion avanzada y Clean Code profundo.
+
+| Dato | Valor |
+| --- | --- |
+| Lenguaje principal | Java |
+| Framework | Spring Boot |
+| Build tool | Maven |
+| Dependencias requeridas | Spring Web, Spring Data JPA, H2 Database |
+| Analisis de calidad | SonarQube Community |
+
+> Este repositorio esta preparado para quedar como entrega Java: el codigo de aplicacion y pruebas esta en `src/main/java` y `src/test/java`.
 
 ## Estado inicial
 
@@ -37,6 +47,26 @@ El segundo estado del proyecto elimina los smells principales con las tecnicas e
 | Dependencias inyectadas por constructor | Cumplido |
 | Pruebas automatizadas actualizadas | Cumplido |
 
+## Estructura del proyecto
+
+```text
+.
+|-- README.md
+|-- pom.xml
+|-- docs/
+|   `-- sonarqube/
+|       `-- README.md
+|-- src/
+|   |-- main/
+|   |   |-- java/com/vega/post1u11/
+|   |   |   |-- Post1U11Application.java
+|   |   |   |-- model/
+|   |   |   |-- repository/
+|   |   |   `-- service/
+|   |   `-- resources/application.properties
+|   `-- test/java/com/vega/post1u11/service/PedidoServiceTest.java
+```
+
 ## Comandos requeridos
 
 Compilar el proyecto:
@@ -51,7 +81,19 @@ Ejecutar pruebas:
 mvn test
 ```
 
-Analisis inicial con SonarQube:
+Ejecutar verificacion completa de Maven:
+
+```bash
+mvn verify
+```
+
+Levantar SonarQube local con Docker:
+
+```bash
+docker run -d --name sonarqube -p 9000:9000 sonarqube:community
+```
+
+Analisis inicial o final con SonarQube:
 
 ```bash
 mvn verify sonar:sonar \
@@ -64,9 +106,18 @@ mvn verify sonar:sonar \
 
 | Metrica | Antes de refactorizar | Despues de refactorizar |
 | --- | ---: | ---: |
-| Complejidad ciclomatica de `procesarPedido` | Pendiente de analisis inicial | Pendiente |
-| Code Smells totales | Pendiente de analisis inicial | Pendiente |
-| Technical Debt Ratio | Pendiente de analisis inicial | Pendiente |
+| Complejidad ciclomatica de `procesarPedido` | Completar con SonarQube inicial | Completar con SonarQube final |
+| Code Smells totales | Completar con SonarQube inicial | Completar con SonarQube final |
+| Technical Debt Ratio | Completar con SonarQube inicial | Completar con SonarQube final |
+
+### Comparacion esperada
+
+| Aspecto | Antes | Despues |
+| --- | --- | --- |
+| Parametros primitivos del cliente | Varias cadenas separadas en `procesarPedido` | `DatosCliente` y `Direccion` |
+| Metodo principal | Mezcla validacion, calculo, descuento, notificacion y persistencia | Orquesta pasos pequenos |
+| Notificacion | Dentro de `PedidoService` | `NotificacionService` independiente |
+| Inyeccion de dependencias | Campo con `@Autowired` | Constructor |
 
 ## Capturas
 
@@ -76,3 +127,13 @@ Guardar las evidencias solicitadas por la rubrica en la carpeta `docs/sonarqube`
 | --- | --- |
 | Dashboard inicial | `docs/sonarqube/antes.png` |
 | Dashboard final | `docs/sonarqube/despues.png` |
+
+## Commits sugeridos
+
+La rubrica pide minimo 3 commits descriptivos:
+
+| Commit | Contenido |
+| --- | --- |
+| `commit inicial codigo original` | Proyecto base con smells deliberados. |
+| `refactorizacion clean code pedido service` | Value Objects, Extract Method, Extract Class e inyeccion por constructor. |
+| `analisis final sonarqube documentacion` | README final, metricas reales y capturas de SonarQube. |
